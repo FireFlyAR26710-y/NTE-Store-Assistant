@@ -1,5 +1,11 @@
 # 异环店长特供助手
 
+[![platform: Windows 10+ x64](https://img.shields.io/badge/platform-Windows%2010%2B%20x64-0078D6?style=plastic)](#使用)
+[![license: MIT](https://img.shields.io/badge/license-MIT-78A22F?style=plastic)](LICENSE)
+[![language: C#](https://img.shields.io/badge/language-C%23-9255B5?style=plastic)](src)
+[![UI: WPF](https://img.shields.io/badge/UI-WPF-267F76?style=plastic)](src/ModernWindow.xaml)
+[![code size](https://img.shields.io/github/languages/code-size/FireFlyAR26710-y/NTE-Store-Assistant?style=plastic&color=orange)](src)
+
 店长特供 1-9 自动点击工具。配队负责营业，程序负责选关、开始、退出、领取和检查能量。
 
 ![界面](docs/main.png)
