@@ -1,0 +1,12 @@
+dist/
+bin/
+obj/
+.vs/
+settings.json
+Logs/
+*-smoke.txt
+*-suite.txt
+self-test.txt
+*.error.txt
+*.user
+*.suo

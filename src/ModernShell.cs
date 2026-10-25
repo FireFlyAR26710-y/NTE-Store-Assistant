@@ -1,0 +1,48 @@
+﻿using System;
+using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Markup;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+
+namespace NTEAssistant {
+public class ModernShell {
+ Window window;
+ MainForm engine;
+ Settings model;
+ DispatcherTimer timer;
+ bool preview;
+ string lastConfig;
+ DateTime noticeUntil;
+ [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr h,int attribute,ref int value,int size);
+ T Get<T>(string name)where T:class{return window.FindName(name) as T;}
+ void Button(string name,Action action){Get<Button>(name).Click+=delegate{try{action();}catch(Exception e){Notice(e.Message);}};}
+ async void Capture(){if(engine.ShellBusy){Notice("先按 F8 停止自动运行。");return;}try{Commit();window.Hide();try{await engine.ShellCapture();}finally{window.Show();window.Activate();}Get<CheckBox>("WholeImage").IsChecked=false;await engine.ShellAnalyze(true,true,false);ShowTest();}catch(Exception e){Notice(e.Message);}}
+ async void Import(){try{Commit();var dialog=new Microsoft.Win32.OpenFileDialog{Filter="图片|*.png;*.jpg;*.jpeg;*.bmp"};if(dialog.ShowDialog(window)==true){await engine.ShellImport(dialog.FileName,Get<CheckBox>("WholeImage").IsChecked==true);ShowTest();}}catch(Exception e){Notice(e.Message);}}
+ async void Analyze(bool revenue,bool energy){try{Commit();await engine.ShellAnalyze(revenue,energy,Get<CheckBox>("WholeImage").IsChecked==true);ShowTest();}catch(Exception e){Notice(e.Message);}}
+ async void ClickTest(){try{Commit();await engine.ShellClick();ShowTest();}catch(Exception e){Notice(e.Message);}}
+ void Notice(string text){noticeUntil=DateTime.Now.AddSeconds(6);Get<TextBlock>("RunStatus").Text=text;Get<TextBlock>("TestStatus").Text=text;}
+ void Commit(){if(engine.ShellBusy)throw new Exception("正在运行，请先停止再修改参数。");var grid=Get<DataGrid>("Steps");grid.CommitEdit(DataGridEditingUnit.Cell,true);grid.CommitEdit(DataGridEditingUnit.Row,true);int n,t;if(!int.TryParse(Get<TextBox>("Rounds").Text,out n)||n<1||n>9999)throw new Exception("循环次数应为1至9999。");if(!int.TryParse(Get<TextBox>("Timeout").Text,out t)||t<10||t>3600)throw new Exception("超时应为10至3600秒。");model.Rounds=n;model.Timeout=t;model.Guard=Get<CheckBox>("Guard").IsChecked==true;engine.ShellApply(model,grid.SelectedIndex);lastConfig=Snapshot();}
+ string Snapshot(){return new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(engine.ShellSettings);}
+ void Select(int page){Get<Grid>("RunPage").Visibility=page==0?Visibility.Visible:Visibility.Collapsed;Get<Grid>("TestPage").Visibility=page==1?Visibility.Visible:Visibility.Collapsed;Get<Grid>("LogPage").Visibility=page==2?Visibility.Visible:Visibility.Collapsed;string[] names={"NavRun","NavTest","NavLog"};for(int i=0;i<3;i++){Get<Button>(names[i]).Background=new SolidColorBrush((Color)ColorConverter.ConvertFromString(i==page?"#E0EBE5":"#00FFFFFF"));Get<Button>(names[i]).Foreground=new SolidColorBrush((Color)ColorConverter.ConvertFromString(i==page?"#176B57":"#56616A"));}}
+ BitmapImage Image(byte[] bytes){if(bytes==null)return null;var image=new BitmapImage();using(var ms=new MemoryStream(bytes)){image.BeginInit();image.CacheOption=BitmapCacheOption.OnLoad;image.StreamSource=ms;image.EndInit();image.Freeze();}return image;}
+ void ShowTest(){Get<Image>("Screenshot").Source=Image(engine.ShellImage(0));Get<Image>("RevenueCrop").Source=Image(engine.ShellImage(1));Get<Image>("EnergyCrop").Source=Image(engine.ShellImage(2));Get<TextBlock>("RevenueResult").Text=engine.ShellRevenue;Get<TextBlock>("EnergyResult").Text=engine.ShellEnergy;Get<TextBox>("TestReport").Text=engine.ShellReport;Get<TextBlock>("TestStatus").Text=engine.ShellTestStatus;}
+ void Poll(){Get<TextBlock>("GameName").Text=engine.ShellGame;if(DateTime.Now>noticeUntil)Get<TextBlock>("RunStatus").Text=engine.ShellStatus;Get<TextBox>("LogText").Text=engine.ShellLog;Get<Button>("StartRunButton").IsEnabled=!engine.ShellBusy;Get<DataGrid>("Steps").IsReadOnly=engine.ShellBusy;var current=Snapshot();if(current!=lastConfig&&!Get<DataGrid>("Steps").IsKeyboardFocusWithin){model=engine.ShellSettings;Get<DataGrid>("Steps").ItemsSource=model.Steps;Get<DataGrid>("Steps").Items.Refresh();lastConfig=current;}}
+ public ModernShell(bool isPreview){preview=isPreview;using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("NTEAssistant.ModernWindow.xaml"))window=(Window)XamlReader.Load(stream);engine=new MainForm();model=engine.ShellSettings;engine.BeforeShellStart=Commit;lastConfig=Snapshot();Get<DataGrid>("Steps").ItemsSource=model.Steps;Get<DataGrid>("Steps").SelectedIndex=0;Get<DataGrid>("Steps").SizeChanged+=delegate{var table=Get<DataGrid>("Steps");double free=Math.Max(320,table.ActualWidth-285);table.Columns[0].Width=new DataGridLength(free*.60);table.Columns[2].Width=new DataGridLength(free*.40);};foreach(var column in Get<DataGrid>("Steps").Columns){var check=column as DataGridCheckBoxColumn;if(check!=null){check.ElementStyle=(Style)window.Resources[typeof(CheckBox)];check.EditingElementStyle=(Style)window.Resources[typeof(CheckBox)];}}Get<TextBox>("Rounds").Text=model.Rounds.ToString();Get<TextBox>("Timeout").Text=model.Timeout.ToString();Get<CheckBox>("Guard").IsChecked=model.Guard;Select(0);
+  Get<Grid>("TitleDrag").MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){DependencyObject p=e.OriginalSource as DependencyObject;while(p!=null){if(p is Button)return;p=VisualTreeHelper.GetParent(p);}if(e.ClickCount==2)window.WindowState=window.WindowState==WindowState.Maximized?WindowState.Normal:WindowState.Maximized;else window.DragMove();};
+  Button("Minimize",delegate{window.WindowState=WindowState.Minimized;});Button("Maximize",delegate{window.WindowState=window.WindowState==WindowState.Maximized?WindowState.Normal:WindowState.Maximized;});Button("CloseWindow",delegate{window.Close();});Button("NavRun",delegate{Select(0);});Button("NavTest",delegate{Select(1);});Button("NavLog",delegate{Select(2);});
+  Button("FindGame",delegate{engine.ShellRefresh();Poll();});Button("StartRunButton",delegate{Commit();engine.ShellStart();});Button("StopRunButton",delegate{engine.ShellStop();});Button("RecordClick",delegate{Commit();engine.ShellRecord();window.WindowState=WindowState.Minimized;});Button("RecordRevenue",delegate{Commit();engine.ShellArea(false);window.WindowState=WindowState.Minimized;});Button("RecordEnergy",delegate{Commit();engine.ShellArea(true);window.WindowState=WindowState.Minimized;});Button("SaveSettings",delegate{Commit();engine.ShellSave();Notice("参数已保存。");});Button("AddStep",delegate{Commit();model.Steps.Add(new Step{Name="新步骤",Wait=2});Get<DataGrid>("Steps").Items.Refresh();});Button("DeleteStep",delegate{Commit();int index=Get<DataGrid>("Steps").SelectedIndex;if(index>=0){model.Steps.RemoveAt(index);Get<DataGrid>("Steps").Items.Refresh();}});
+  Button("CaptureTest",Capture);Button("ImportTest",Import);Button("RevenueTest",delegate{Analyze(true,false);});Button("EnergyTest",delegate{Analyze(false,true);});Button("MouseTest",ClickTest);
+  window.SourceInitialized+=delegate{try{int rounded=2;DwmSetWindowAttribute(new System.Windows.Interop.WindowInteropHelper(window).Handle,33,ref rounded,4);}catch{}if(!preview)engine.ShellInitialize();};window.Closing+=delegate{if(!preview&&!engine.ShellBusy)try{Commit();engine.ShellSave();}catch{}engine.ShellDispose();};timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(400)};timer.Tick+=delegate{Poll();};if(!preview)timer.Start();window.Closed+=delegate{timer.Stop();};Poll();
+ }
+ void Render(string path){window.UpdateLayout();var target=new RenderTargetBitmap((int)window.ActualWidth,(int)window.ActualHeight,96,96,PixelFormats.Pbgra32);target.Render(window);var png=new PngBitmapEncoder();png.Frames.Add(BitmapFrame.Create(target));using(var stream=File.Create(path))png.Save(stream);}
+ public static void Smoke(){MainForm.PreviewMode=true;var shell=new ModernShell(true);try{string before=shell.Snapshot();shell.Commit();if(shell.Snapshot()!=before)throw new Exception("参数在界面同步时发生变化。");if(shell.Get<DataGrid>("Steps").Items.Count!=shell.model.Steps.Count)throw new Exception("流程行绑定失败。");for(int i=0;i<3;i++)shell.Select(i);if(shell.Get<Grid>("LogPage").Visibility!=Visibility.Visible)throw new Exception("导航切换失败。");int expected=shell.model.Rounds;shell.Get<TextBox>("Rounds").Text="0";bool rejected=false;try{shell.Commit();}catch{rejected=true;}if(!rejected)throw new Exception("无效参数未被拦截。");shell.Get<TextBox>("Rounds").Text=expected.ToString();shell.Commit();File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"fluent-smoke.txt"),"PASS: WPF XAML load, saved parameters preserved, step bindings, three-page navigation, invalid input rejection\r\n");}finally{shell.engine.ShellDispose();}}
+ public static void Run(){var shell=new ModernShell(false);new Application().Run(shell.window);}
+ public static void Preview(string image,string output){MainForm.PreviewMode=true;var shell=new ModernShell(true);shell.window.Left=-10000;shell.window.Top=-10000;shell.window.Loaded+=async delegate{try{shell.Select(0);shell.Render(output+".run.png");await shell.engine.ShellImport(image,true);shell.Get<CheckBox>("WholeImage").IsChecked=true;shell.ShowTest();shell.Select(1);shell.Render(output);File.WriteAllText(output+".txt",shell.engine.ShellReport);}catch(Exception e){File.WriteAllText(output+".error.txt",e.ToString());Environment.ExitCode=50;}finally{shell.window.Close();}};new Application().Run(shell.window);}
+}
+}
