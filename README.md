@@ -1,4 +1,4 @@
-# 异环店长特供助手
+<h1><img src="assets/app.png" width="48" height="48" alt="薄荷" /> 异环店长特供助手</h1>
 
 [![platform: Windows 10+ x64](https://img.shields.io/badge/platform-Windows%2010%2B%20x64-0078D6?style=plastic)](#使用)
 [![license: MIT](https://img.shields.io/badge/license-MIT-78A22F?style=plastic)](LICENSE)
@@ -8,7 +8,7 @@
 
 店长特供 1-9 自动点击工具。配队负责营业，程序负责选关、开始、退出、领取和检查能量。
 
-![界面](docs/main.png)
+![v1.0.1 界面](docs/main-v1.0.1.png)
 
 ## 使用
 
