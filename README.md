@@ -10,7 +10,7 @@
 
 ![v1.0.1 界面](docs/main-v1.0.1.png)
 
-## 使用
+## 使用方法
 
 从 [Releases](https://github.com/FireFlyAR26710-y/NTE-Store-Assistant/releases/latest) 下载，解压后运行 `NTEStoreAssistant.exe`。
 
