@@ -13,6 +13,7 @@ $output = Join-Path $PSScriptRoot 'dist'
 New-Item -ItemType Directory -Force -Path $output | Out-Null
 $arguments = @(
     '/nologo', '/target:winexe', '/platform:x64', '/optimize+',
+    "/win32icon:$PSScriptRoot\assets\app.ico",
     '/reference:System.Windows.Forms.dll', '/reference:System.Drawing.dll',
     '/reference:System.Web.Extensions.dll', '/reference:System.Xaml.dll',
     "/reference:$sdk",
@@ -24,6 +25,7 @@ $arguments = @(
     "/reference:$framework\WPF\PresentationFramework.dll",
     "/resource:$source\ModernWindow.xaml,NTEAssistant.ModernWindow.xaml",
     "/resource:$source\DefaultSettings.json,NTEAssistant.DefaultSettings.json",
+    "/resource:$PSScriptRoot\assets\app.ico,NTEAssistant.App.ico",
     "/out:$output\NTEStoreAssistant.exe"
 )
 $arguments += Get-ChildItem -LiteralPath $source -Filter '*.cs' | Select-Object -ExpandProperty FullName
